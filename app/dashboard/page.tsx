@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // File type definition
 type File = {
@@ -19,7 +20,7 @@ type File = {
 const mockFiles: File[] = [
   {
     id: "1",
-    name: "Contract_Agreement_v2.pdf",
+    name: "Research Paper.pdf",
     type: "pdf",
     size: "2.4 MB",
     uploadDate: "2023-11-15",
@@ -81,6 +82,17 @@ export default function Dashboard() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [shareEmail, setShareEmail] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [encryptionStage, setEncryptionStage] = useState<"key" | "encrypt" | "complete">("key");
+  const [encryptionProgress, setEncryptionProgress] = useState(0);
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
+  const [showSharingProcessModal, setShowSharingProcessModal] = useState(false);
+  const [sharingStage, setSharingStage] = useState<"key" | "encrypt" | "complete">("key");
+  const [sharingProgress, setSharingProgress] = useState(0);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyStage, setVerifyStage] = useState<"hash" | "blockchain" | "complete">("hash");
+  const [verifyProgress, setVerifyProgress] = useState(0);
 
   // Filter files based on active tab and search query
   const filteredFiles = files.filter((file) => {
@@ -98,10 +110,7 @@ export default function Dashboard() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      
-      // In a real app, you would upload the file to your backend/IPFS here
-      // For demo purposes, we'll just add it to our local state
-      const newFile: File = {
+      const fileWithMetadata: File = {
         id: Date.now().toString(),
         name: file.name,
         type: file.name.split('.').pop() || "",
@@ -109,11 +118,45 @@ export default function Dashboard() {
         uploadDate: new Date().toISOString().split('T')[0],
         owner: "You",
         shared: false,
-        accessLevel: "owner",
+        accessLevel: "owner"
       };
-      
-      setFiles([newFile, ...files]);
+      setFileToUpload(fileWithMetadata);
       setShowUploadModal(false);
+      setShowEncryptionModal(true);
+      setEncryptionStage("key");
+      setEncryptionProgress(0);
+      
+      // Simulate encryption process
+      setTimeout(() => {
+        setEncryptionProgress(50);
+        setEncryptionStage("encrypt");
+        
+        setTimeout(() => {
+          // Add file to state
+          const newFile: File = {
+            id: Date.now().toString(),
+            name: file.name,
+            type: file.name.split('.').pop() || "",
+            size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
+            uploadDate: new Date().toISOString().split('T')[0],
+            owner: "You",
+            shared: false,
+            accessLevel: "owner",
+          };
+          
+          setEncryptionProgress(100);
+          setEncryptionStage("complete");
+          
+          // Close modal and reset after completion
+          setTimeout(() => {
+            setFiles([newFile, ...files]);
+            setShowEncryptionModal(false);
+            setFileToUpload(null);
+            setEncryptionStage("key");
+            setEncryptionProgress(0);
+          }, 1000);
+        }, 2000);
+      }, 2000);
     }
   };
 
@@ -121,19 +164,40 @@ export default function Dashboard() {
   const handleShare = () => {
     if (!selectedFile) return;
     
-    // In a real app, you would call your API to share the file
-    // For demo purposes, we'll just update our local state
-    const updatedFiles = files.map((file) => {
-      if (file.id === selectedFile.id) {
-        return { ...file, shared: true };
-      }
-      return file;
-    });
-    
-    setFiles(updatedFiles);
     setShowShareModal(false);
-    setShareEmail("");
-    setSelectedFile(null);
+    setShowSharingProcessModal(true);
+    setSharingStage("key");
+    setSharingProgress(0);
+    
+    // Simulate key generation
+    setTimeout(() => {
+      setSharingProgress(50);
+      setSharingStage("encrypt");
+      
+      // Simulate encryption and sharing process
+      setTimeout(() => {
+        // Update the shared status
+        const updatedFiles = files.map((file) => {
+          if (file.id === selectedFile.id) {
+            return { ...file, shared: true };
+          }
+          return file;
+        });
+        
+        setSharingProgress(100);
+        setSharingStage("complete");
+        
+        // Close modal and reset after completion
+        setTimeout(() => {
+          setFiles(updatedFiles);
+          setShowSharingProcessModal(false);
+          setShareEmail("");
+          setSelectedFile(null);
+          setSharingStage("key");
+          setSharingProgress(0);
+        }, 1000);
+      }, 2000);
+    }, 2000);
   };
 
   // Handle file download with stages
@@ -164,6 +228,33 @@ export default function Dashboard() {
     }, 2000);
   };
 
+  // Handle file verification
+  const handleVerify = (file: File) => {
+    setSelectedFile(file);
+    setShowVerifyModal(true);
+    setVerifyStage("hash");
+    setVerifyProgress(0);
+    
+    // Simulate verification process
+    setTimeout(() => {
+      setVerifyProgress(50);
+      setVerifyStage("blockchain");
+      
+      setTimeout(() => {
+        setVerifyProgress(100);
+        setVerifyStage("complete");
+        
+        // Close modal and reset after completion
+        setTimeout(() => {
+          setShowVerifyModal(false);
+          setSelectedFile(null);
+          setVerifyStage("hash");
+          setVerifyProgress(0);
+        }, 1000);
+      }, 2000);
+    }, 2000);
+  };
+
   // Get icon based on file type
   const getFileIcon = (type: string) => {
     switch (type) {
@@ -180,6 +271,11 @@ export default function Dashboard() {
       default:
         return "./file.svg";
     }
+  };
+
+  const handleLogout = () => {
+    // In a real app, you would also handle clearing auth tokens/session here
+    router.push('/');
   };
 
   return (
@@ -223,11 +319,34 @@ export default function Dashboard() {
               </svg>
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
-                <span className="text-sm font-medium">JS</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center">
+                  <span className="text-sm font-medium">JS</span>
+                </div>
+                <span className="text-sm font-medium">Qureshi Abraham</span>
               </div>
-              <span className="text-sm font-medium">John Smith</span>
+              
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
@@ -359,6 +478,26 @@ export default function Dashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
+                        <button
+                          className="text-indigo-600 hover:text-indigo-900"
+                          onClick={() => handleVerify(file)}
+                          title="Verify"
+                        >
+                          <svg
+                            className="h-5 w-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                            />
+                          </svg>
+                        </button>
                         <button
                           className="text-indigo-600 hover:text-indigo-900"
                           onClick={() => handleDownload(file)}
@@ -613,6 +752,288 @@ export default function Dashboard() {
                 disabled={downloadStage !== "complete"}
               >
                 {downloadStage === "complete" ? "Close" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Encryption Modal */}
+      {showEncryptionModal && fileToUpload && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Secure Upload</h2>
+            <p className="text-gray-600 mb-6">
+              Encrypting "{fileToUpload.name}" for secure storage
+            </p>
+            
+            <div className="mb-6">
+              {/* Progress bar */}
+              <div className="h-2 w-full bg-gray-200 rounded-full mb-4">
+                <div 
+                  className="h-full bg-indigo-600 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${encryptionProgress}%` }}
+                ></div>
+              </div>
+              
+              {/* Stages */}
+              <div className="flex items-center mb-4">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  encryptionStage === "key" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : encryptionStage === "encrypt" || encryptionStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {encryptionStage === "key" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Generating Encryption Key</h3>
+                  <p className="text-xs text-gray-500">Using AES-256 encryption standard</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  encryptionStage === "encrypt" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : encryptionStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {encryptionStage === "encrypt" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : encryptionStage === "complete" ? (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  ) : (
+                    <span className="text-gray-400">2</span>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Encrypting File</h3>
+                  <p className="text-xs text-gray-500">Preparing for secure storage</p>
+                </div>
+              </div>
+            </div>
+            
+            {encryptionStage === "complete" && (
+              <div className="text-center text-green-600 font-medium">
+                Upload complete! File encrypted and stored securely.
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                onClick={() => {
+                  setShowEncryptionModal(false);
+                  setFileToUpload(null);
+                }}
+                disabled={encryptionStage !== "complete"}
+              >
+                {encryptionStage === "complete" ? "Close" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sharing Process Modal */}
+      {showSharingProcessModal && selectedFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Secure Sharing</h2>
+            <p className="text-gray-600 mb-6">
+              Sharing "{selectedFile.name}" with {shareEmail}
+            </p>
+            
+            <div className="mb-6">
+              {/* Progress bar */}
+              <div className="h-2 w-full bg-gray-200 rounded-full mb-4">
+                <div 
+                  className="h-full bg-indigo-600 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${sharingProgress}%` }}
+                ></div>
+              </div>
+              
+              {/* Stages */}
+              <div className="flex items-center mb-4">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  sharingStage === "key" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : sharingStage === "encrypt" || sharingStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {sharingStage === "key" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Generating Sharing Keys</h3>
+                  <p className="text-xs text-gray-500">Creating secure access credentials</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  sharingStage === "encrypt" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : sharingStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {sharingStage === "encrypt" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : sharingStage === "complete" ? (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  ) : (
+                    <span className="text-gray-400">2</span>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Setting Up Access</h3>
+                  <p className="text-xs text-gray-500">Configuring permissions and sending invitation</p>
+                </div>
+              </div>
+            </div>
+            
+            {sharingStage === "complete" && (
+              <div className="text-center text-green-600 font-medium">
+                Share complete! An invitation has been sent to {shareEmail}.
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                onClick={() => {
+                  setShowSharingProcessModal(false);
+                  setSelectedFile(null);
+                }}
+                disabled={sharingStage !== "complete"}
+              >
+                {sharingStage === "complete" ? "Close" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verify Modal */}
+      {showVerifyModal && selectedFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Verify File Authenticity</h2>
+            <p className="text-gray-600 mb-6">
+              Verifying "{selectedFile.name}" on blockchain
+            </p>
+            
+            <div className="mb-6">
+              {/* Progress bar */}
+              <div className="h-2 w-full bg-gray-200 rounded-full mb-4">
+                <div 
+                  className="h-full bg-indigo-600 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${verifyProgress}%` }}
+                ></div>
+              </div>
+              
+              {/* Stages */}
+              <div className="flex items-center mb-4">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  verifyStage === "hash" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : verifyStage === "blockchain" || verifyStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {verifyStage === "hash" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Computing File Hash</h3>
+                  <p className="text-xs text-gray-500">Using SHA-256 hashing algorithm</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center">
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                  verifyStage === "blockchain" 
+                    ? "bg-indigo-600 text-white animate-pulse" 
+                    : verifyStage === "complete" 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200"
+                }`}>
+                  {verifyStage === "blockchain" ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : verifyStage === "complete" ? (
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  ) : (
+                    <span className="text-gray-400">2</span>
+                  )}
+                </div>
+                <div className="ml-4 flex-grow">
+                  <h3 className="text-sm font-medium text-gray-900">Verifying on Blockchain</h3>
+                  <p className="text-xs text-gray-500">Checking file integrity and authenticity</p>
+                </div>
+              </div>
+            </div>
+            
+            {verifyStage === "complete" && (
+              <div className="text-center text-green-600 font-medium">
+                Verification complete! File integrity confirmed on blockchain.
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                onClick={() => {
+                  setShowVerifyModal(false);
+                  setSelectedFile(null);
+                }}
+                disabled={verifyStage !== "complete"}
+              >
+                {verifyStage === "complete" ? "Close" : "Cancel"}
               </button>
             </div>
           </div>
