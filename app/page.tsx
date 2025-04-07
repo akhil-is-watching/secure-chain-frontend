@@ -33,7 +33,7 @@ export default function Home() {
           <div className="flex gap-4 items-center flex-col sm:flex-row justify-center">
             <a
               className="rounded-full bg-indigo-500 hover:bg-indigo-600 transition-colors flex items-center justify-center gap-2 font-medium text-base h-12 px-8 w-full sm:w-auto"
-              href="/auth"
+              href="/dashboard"
             >
               Get Started Free
             </a>
